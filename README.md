@@ -11,6 +11,7 @@ A minimal, “no‑frills” deployment of a WireGuard VPN server on Proxmox usi
 - [Prerequisites](#prerequisites)
 - [Terraform Setup](#terraform-setup)
 - [Cloud‑Init Template Creation](#cloudinit-template-creation)
+- [Clone this Repository](#clone-this-repository)
 - [Terraform Deployment](#terraform-deployment)
 - [Connecting Clients](#connecting-clients)
 
@@ -52,7 +53,7 @@ pveum aclmod / -user terraform-prov@pve -role TerraformProv
 
 ## Cloud‑Init Template Creation
 
-To prepare an AlmaLinux 9 cloud-init template for use in Proxmox:
+To prepare an AlmaLinux 9 cloud-init template for use in Proxmox, log in to your proxmox shell as a local user. For this example the `root` user was used and the following commands were ran from `root`'s `home` directory:
 
 ```bash
 # Download the AlmaLinux 9 cloud image, I used a local mirror
@@ -79,6 +80,16 @@ qm template 9000
 ```
 
 ---
+
+## Clone this Repository
+
+On your local machine open up a terminal and clone the project:
+
+```bash
+git clone https://github.com/YamiND/Wireguard
+```
+
+Once downloaded you will need rename the `terraform.tfvars.example` file to `terraform.tfvars`, as well as `roles/wireguard/vars/main.yml.example` to `roles/wireguard/vars/main.yml`. You will need to populate each file with their relevant variable data, examples are in the individual files.
 
 ## Terraform Deployment
 
