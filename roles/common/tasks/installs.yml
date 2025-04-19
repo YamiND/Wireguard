@@ -1,0 +1,29 @@
+---
+- name: Install Epel
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Install Htop
+  ansible.builtin.dnf:
+    name: htop
+    state: present
+
+- name: Install Guest Agent
+  ansible.builtin.dnf:
+    name: qemu-guest-agent
+    state: present
+
+- name: Ensure Guest agent is running and enabled via systemd
+  ansible.builtin.systemd:
+    name: qemu-guest-agent
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Install python3-firewall and firewalld
+  ansible.builtin.dnf:
+    name:
+      - python3-firewall
+      - firewalld
+    state: present

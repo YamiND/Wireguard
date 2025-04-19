@@ -1,0 +1,5 @@
+---
+- set_fact: role_name=wireguard
+
+- import_tasks: install.yml
+- import_tasks: configure.yml

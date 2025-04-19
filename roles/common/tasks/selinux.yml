@@ -1,0 +1,11 @@
+---
+- name: Disable SELinux
+  ansible.posix.selinux:
+    state: disabled
+  register: selinux_result
+  
+- name: Trigger notify if SELinux state changed
+  meta: refresh_inventory
+  notify: "restart server"
+  when: selinux_result.changed
+  

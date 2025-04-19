@@ -1,0 +1,10 @@
+[Interface]
+PrivateKey = {{ client_private_key }}
+Address = {{ wireguard_client_peer_ipv4 }}
+DNS = {{ dns_servers | join(', ') }}
+
+[Peer]
+PublicKey = {{ server_public_key }}
+AllowedIPs = {{ allowed_ips }}
+Endpoint = {{ public_ipv4 }}:{{ wireguard_port }}
+PersistentKeepalive = {{ persistent_keepalive }}

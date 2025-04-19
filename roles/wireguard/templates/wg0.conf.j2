@@ -1,0 +1,9 @@
+[Interface]
+Address = {{ wireguard_server_ipv4 }}/24
+PrivateKey = {{ server_private_key }}
+ListenPort = {{ wireguard_port }}
+
+
+[Peer]
+PublicKey = {{ client_public_key }}
+AllowedIPs = {{ wireguard_client_peer_ipv4 }}/32

@@ -1,0 +1,14 @@
+vm_name             = "VM_NAME" # Name of the VM to be called in proxmox, e.g wireguard-01
+proxmox_node        = "PROXMOX_NODE_NAME" # Name of proxmox node, e.g proxmox-01
+proxmox_api_host    = "https://PROXMOX_FQDN:8006/api2/json" # For terraform connect over API using FQDN
+template_name       = "CLOUD_INIT_TEMPLATE" # name of cloud init template you created e.g Alma9CloudTemplate
+storage_pool        = "STORAGE_POOL_NAME" # Storage pool name, e.g local-lvm or ceph cluster name
+network_bridge      = "NETWORK_BRIDGE_NAME" # network bridge name in Proxmox e.g vmbr0 or Servers
+vm_ip               = "VM_STATIC_IP" # static IPv4 address e.g 192.168.1.10
+vm_cidr             = "VM_NETWORK_CIDR" # subnet mask in CIDR notation e.g 24
+gateway             = "VM_NETWORK_GATEWAY" # router/gateway, e.g 192.168.1.1
+cloud_init_user     = "CLOUD_INIT_USER" # Username for the vm user, e.g yamind
+cloud_init_password = "CLOUD_INIT_PASSWORD" # Password for the vm user, e.g mypassword
+cloudinit_cdrom_storage = "CLOUD_INIT_STORAGE_POOL" # Storage pool name, e.g local-lvm
+ssh_pubkey_path     = "~/.ssh/id_ed25519.pub" # Make this your SSH key pub file
+ssh_private_key_path = "~/.ssh/id_ed25519" # Make this your SSH key private file

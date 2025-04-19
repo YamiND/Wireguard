@@ -1,0 +1,5 @@
+---
+- name: Install Wireguard Tools
+  ansible.builtin.dnf:
+    name: wireguard-tools
+    state: latest

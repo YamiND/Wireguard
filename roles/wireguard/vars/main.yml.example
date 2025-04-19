@@ -1,0 +1,15 @@
+---
+server_ipv4: X.X.X.X # Server LAN IP
+wireguard_server_ipv4: 10.7.0.1 # Wireguard network server IP, only exists on server
+wireguard_port: 51820 # Wireguard listening port
+wireguard_network_id: 10.7.0.0 # Wireguard network ID, used in firewall rules
+wireguard_network_cidr: 24 # Wireguard network subnet in CIDR notation
+wireguard_client_peer_ipv4: 10.7.0.2 # Wireguard client IP, the IP of the client when it connects in its tunnel file
+dns_servers:
+  - "1.1.1.1" # DNS Server 1
+  - "8.8.8.8" # DNS Server 2
+allowed_ips: "0.0.0.0/0" # Change this to the LAN subnet range if you want split tunnel.
+public_ipv4: "X.X.X.X" # Public IPv4 address, this could be a port forward or no-ip. 
+
+persistent_keepalive: 25
+local_download_path: "{{ lookup('env', 'HOME') + '/Downloads' }}" # Where the client file is saved to on local PC

@@ -1,0 +1,210 @@
+---
+- name: Enable WireGuard kernel module
+  community.general.modprobe:
+    name: wireguard
+    state: present
+  register: wireguard__register_module_enabled
+  until: wireguard__register_module_enabled is succeeded
+  retries: 10
+  delay: 10
+  failed_when: wireguard__register_module_enabled is failure
+
+- name: Check if WireGuard server key exists
+  stat:
+    path: /etc/wireguard/server.key
+  register: wg_key_stat
+
+- name: Generate WireGuard server key
+  command: wg genkey
+  register: wg_key_output
+  when: not wg_key_stat.stat.exists
+
+- name: Read existing WireGuard server key
+  slurp:
+    src: /etc/wireguard/server.key
+  register: existing_wg_key
+  when: wg_key_stat.stat.exists
+
+- name: Set WireGuard server private key variable
+  set_fact:
+    server_private_key: "{{ wg_key_output.stdout if wg_key_output is defined else existing_wg_key.content | b64decode }}"
+
+- name: Create /etc/wireguard/server.key file (only if generated)
+  copy:
+    content: "{{ server_private_key }}"
+    dest: /etc/wireguard/server.key
+    mode: '0400'
+  when: not wg_key_stat.stat.exists
+
+- name: Check if WireGuard server public key exists
+  stat:
+    path: /etc/wireguard/server.pub
+  register: wg_pubkey_stat
+
+- name: Generate WireGuard server public key from private key
+  command: bash -c 'cat /etc/wireguard/server.key | wg pubkey'
+  register: wg_pubkey_output
+  when: not wg_pubkey_stat.stat.exists
+
+- name: Read existing WireGuard server public key
+  slurp:
+    src: /etc/wireguard/server.pub
+  register: existing_wg_pubkey
+  when: wg_pubkey_stat.stat.exists
+
+- name: Set WireGuard server public key variable
+  set_fact:
+    server_public_key: "{{ wg_pubkey_output.stdout if wg_pubkey_output is defined else existing_wg_pubkey.content | b64decode }}"
+
+- name: Create /etc/wireguard/server.pub file (only if generated)
+  copy:
+    content: "{{ server_public_key }}"
+    dest: /etc/wireguard/server.pub
+    mode: '0644'
+  when: not wg_pubkey_stat.stat.exists
+
+- name: Ensure /etc/wireguard/clients directory exists
+  file:
+    path: /etc/wireguard/clients
+    state: directory
+    mode: '0755'
+
+- name: Check if client1 private key exists
+  stat:
+    path: /etc/wireguard/clients/client1.key
+  register: client_key_stat
+
+- name: Generate client1 private key
+  command: wg genkey
+  register: client_key_output
+  when: not client_key_stat.stat.exists
+
+- name: Read existing client1 private key
+  slurp:
+    src: /etc/wireguard/clients/client1.key
+  register: existing_client_key
+  when: client_key_stat.stat.exists
+
+- name: Set client1 private key variable
+  set_fact:
+    client_private_key: "{{ client_key_output.stdout if client_key_output is defined else existing_client_key.content | b64decode }}"
+
+- name: Create client1.key file (only if generated)
+  copy:
+    content: "{{ client_private_key }}"
+    dest: /etc/wireguard/clients/client1.key
+    mode: '0400'
+  when: not client_key_stat.stat.exists
+
+- name: Check if client1 public key exists
+  stat:
+    path: /etc/wireguard/clients/client1.pub
+  register: client_pubkey_stat
+
+- name: Generate client1 public key from private key
+  command: bash -c 'cat /etc/wireguard/clients/client1.key | wg pubkey'
+  register: client_pubkey_output
+  when: not client_pubkey_stat.stat.exists
+
+- name: Read existing client1 public key
+  slurp:
+    src: /etc/wireguard/clients/client1.pub
+  register: existing_client_pubkey
+  when: client_pubkey_stat.stat.exists
+
+- name: Set client1 public key variable
+  set_fact:
+    client_public_key: "{{ client_pubkey_output.stdout if client_pubkey_output is defined else existing_client_pubkey.content | b64decode }}"
+
+- name: Create client1.pub file (only if generated)
+  copy:
+    content: "{{ client_public_key }}"
+    dest: /etc/wireguard/clients/client1.pub
+    mode: '0644'
+  when: not client_pubkey_stat.stat.exists
+
+- name: Allow Wireguard Port on Firewall
+  ansible.builtin.firewalld: 
+    port: "{{ wireguard_port }}/udp"
+    permanent: true 
+    state: enabled
+  notify: "restart firewall"
+
+- name: Ensure firewalld is running and enabled via systemd
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Add trusted source permanently
+  ansible.posix.firewalld:
+    source: "{{ wireguard_network_id }}/{{ wireguard_network_cidr }}" 
+    zone: trusted
+    permanent: yes
+    state: enabled
+  notify: "restart firewall"
+
+- name: Ensure firewalld is running and enabled via systemd
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Configure NAT SNAT rule for VPN subnet
+  block:
+    - name: Ensure NAT SNAT rule is present (permanent)
+      ansible.builtin.command: >
+        firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0
+        -s "{{ wireguard_network_id }}/{{ wireguard_network_cidr }}"  ! -d "{{ wireguard_network_id }}/{{ wireguard_network_cidr }}" -j SNAT --to "{{ server_ipv4 }}"
+      register: nat_rule_result
+      changed_when: "'ALREADY_ENABLED' not in nat_rule_result.stderr"
+
+- name: Ensure firewalld is running and enabled via systemd
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Deploy wg0.conf from template
+  template:
+    src: wg0.conf.j2
+    dest: /etc/wireguard/wg0.conf
+    mode: '0600'
+
+- name: Start and enable WireGuard wg0 interface service
+  become: yes
+  ansible.builtin.systemd:
+    name: wg-quick@wg0.service
+    state: restarted
+    enabled: yes
+
+- name: Ensure IPv4 forwarding is enabled in sysctl.conf
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^net.ipv4.ip_forward='
+    line: 'net.ipv4.ip_forward=1'
+    state: present
+    backup: yes
+
+- name: Apply sysctl settings from /etc/sysctl.conf
+  ansible.builtin.command: sysctl -p
+
+- name: Remove existing WireGuard config file
+  file:
+    path: "{{ local_download_path }}/{{ inventory_hostname }}-wg.conf"
+    state: absent
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Generate WireGuard config file locally (e.g., in Downloads)
+  template:
+    src: local_client.conf.j2
+    dest: "{{ local_download_path }}/{{ inventory_hostname }}-wg.conf"
+  delegate_to: localhost
+  become: false 
+  run_once: true  # only run once if play targets multiple hosts
+    
